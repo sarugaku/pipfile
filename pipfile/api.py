@@ -8,6 +8,13 @@ import sys
 import os
 
 
+DEFAULT_SOURCE = {
+    u'url': u'https://pypi.org/simple',
+    u'verify_ssl': True,
+    u'name': u'pypi',
+}
+
+
 def format_full_version(info):
     version = '{0.major}.{0.minor}.{0.micro}'.format(info)
     kind = info.releaselevel
@@ -56,7 +63,7 @@ class PipfileParser(object):
 
         # Load the default configuration.
         default_config = {
-            u'source': [{u'url': u'https://pypi.python.org/simple', u'verify_ssl': True, 'name': "pypi"}],
+            u'source': [DEFAULT_SOURCE],
             u'packages': {},
             u'requires': {},
             u'dev-packages': {}
@@ -68,8 +75,16 @@ class PipfileParser(object):
         # Deserialize the TOML, and parse for Environment Variables
         parsed_toml = self.inject_environment_variables(toml.loads(content))
 
-        # Load the Pipfile's configuration.
-        config.update(parsed_toml)
+        # Deserialize the TOML, and parse for Environment Variables
+        parsed = toml.loads(content)
+
+        if inject_env:
+            injected_toml = self.inject_environment_variables(parsed)
+
+            # Load the Pipfile's configuration.
+            config.update(injected_toml)
+        else:
+            config.update(parsed)
 
         # Structure the data for output.
         data = {
@@ -106,11 +121,11 @@ class Pipfile(object):
             i += 1
 
     @classmethod
-    def load(klass, filename):
+    def load(klass, filename, inject_env=True):
         """Load a Pipfile from a given filename."""
         p = PipfileParser(filename=filename)
         pipfile = klass(filename=filename)
-        pipfile.data = p.parse()
+        pipfile.data = p.parse(inject_env=inject_env)
         return pipfile
 
     @property
@@ -171,7 +186,7 @@ class Pipfile(object):
                     raise AssertionError('Specifier {!r} does not match {!r}.'.format(marker, specifier))
 
 
-def load(pipfile_path=None):
+def load(pipfile_path=None, inject_env=True):
     """Loads a pipfile from a given path.
     If none is provided, one will try to be found.
     """
@@ -179,4 +194,4 @@ def load(pipfile_path=None):
     if pipfile_path is None:
         pipfile_path = Pipfile.find()
 
-    return Pipfile.load(filename=pipfile_path)
+    return Pipfile.load(filename=pipfile_path, inject_env=inject_env)
