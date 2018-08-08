@@ -56,7 +56,7 @@ class PipfileParser(object):
 
         return d
 
-    def parse(self):
+    def parse(self, inject_env=True):
         # Open the Pipfile.
         with open(self.filename) as f:
             content = f.read()
